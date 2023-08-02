@@ -3,7 +3,7 @@ version: "3.8"
 services:
   db:
     image: postgres:12
-    container_name: dtb_postgres
+    container_name: colt_postgres
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
@@ -16,14 +16,14 @@ services:
       - "5433:5432"
   redis:
     image: redis:alpine
-    container_name: dtb_redis
+    container_name: colt_redis
     ports:
       - "6379:6379"
   web:
     build:
       context: .
       dockerfile: LocalDockerfile
-    container_name: dtb_django
+    container_name: colt_django
     restart: always
     command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
@@ -38,7 +38,7 @@ services:
     build:
       context: .
       dockerfile: LocalDockerfile
-    container_name: dtb_bot
+    container_name: colt_bot
     restart: always
     command: python run_polling.py
     env_file:
@@ -49,9 +49,9 @@ services:
     build:
       context: .
       dockerfile: LocalDockerfile
-    container_name: dtb_celery
+    container_name: colt_celery
     restart: always
-    command: celery -A dtb worker --loglevel=INFO
+    command: celery -A colt worker --loglevel=INFO
     volumes:
       - .:/code
     env_file:
@@ -63,9 +63,9 @@ services:
     build:
       context: .
       dockerfile: LocalDockerfile
-    container_name: dtb_beat
+    container_name: colt_beat
     restart: always
-    command: celery -A dtb beat -l info --scheduler django_celery_beat.schedulers.DatabaseScheduler
+    command: celery -A colt beat -l info --scheduler django_celery_beat.schedulers.DatabaseScheduler
     volumes:
       - .:/code
     env_file:

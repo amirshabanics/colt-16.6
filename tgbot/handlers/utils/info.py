@@ -31,3 +31,17 @@ def extract_user_data_from_update(update: Update) -> Dict:
             if k in user and user[k] is not None
         },
     )
+
+
+def extract_group_data_from_update(update: Update) -> Dict:
+    """ python-telegram-bot's Update instance --> User info """
+    group = update.effective_chat.to_dict()
+
+    return dict(
+        group_id=group["id"],
+        **{
+            k: group[k]
+            for k in ["description", "title", "type"]
+            if k in group and group[k] is not None
+        },
+    )

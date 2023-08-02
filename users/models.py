@@ -7,7 +7,7 @@ from django.db.models import QuerySet, Manager
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from tgbot.handlers.utils.info import extract_user_data_from_update
+from tgbot.handlers.utils.info import extract_user_data_from_update, extract_group_data_from_update
 from utils.models import CreateUpdateTracker, nb, CreateTracker, GetOrNoneManager
 
 
@@ -16,27 +16,50 @@ class AdminUserManager(Manager):
         return super().get_queryset().filter(is_admin=True)
 
 
-class User(CreateUpdateTracker):
-    class ChatStateChoices(models.TextChoices):
-        GET_TRX_HASH = "GET_TRX_HASH"
-        NONE = "NONE"
+class Group(CreateUpdateTracker):
+    group_id = models.BigIntegerField(primary_key=True)  # telegram_id
+    title = models.TextField(**nb)
+    type = models.CharField(max_length=32, **nb)
+    description = models.TextField(**nb)
 
+    objects = GetOrNoneManager()  # user = User.objects.get_or_none(user_id=<some_id>)
+
+    def __str__(self):
+        return f'@{self.title}' if self.title is not None else f'{self.group_id}'
+
+    @classmethod
+    def get_group_and_created(cls, update: Update, context: CallbackContext) -> Tuple[Group, bool]:
+        """ python-telegram-bot's Update, Context --> User instance """
+        data = extract_group_data_from_update(update)
+        g, created = cls.objects.update_or_create(
+            group_id=data["group_id"], defaults=data
+        )
+        return g, created
+
+    @classmethod
+    def get_group(cls, update: Update, context: CallbackContext) -> Group:
+        g, _ = cls.get_group_and_created(update, context)
+        return g
+
+    @classmethod
+    def get_if_is_group(cls, update: Update, context: CallbackContext) -> Union[Group, None]:
+        if update.effective_chat.type not in ["group", "supergroup"]:
+            return None
+        return cls.get_group(update, context)
+
+
+class User(CreateUpdateTracker):
     user_id = models.PositiveBigIntegerField(primary_key=True)  # telegram_id
     username = models.CharField(max_length=32, **nb)
     first_name = models.CharField(max_length=256)
     last_name = models.CharField(max_length=256, **nb)
-    language_code = models.CharField(max_length=8, help_text="Telegram client's lang", **nb)
+    language_code = models.CharField(
+        max_length=8, help_text="Telegram client's lang", **nb)
     deep_link = models.CharField(max_length=64, **nb)
 
     is_blocked_bot = models.BooleanField(default=False)
 
     is_admin = models.BooleanField(default=False)
-    chat_state = models.CharField(
-        max_length=64,
-        default=ChatStateChoices.NONE,
-        null=True,
-        choices=ChatStateChoices.choices
-    )
 
     objects = GetOrNoneManager()  # user = User.objects.get_or_none(user_id=<some_id>)
     admins = AdminUserManager()  # User.admins.all()
@@ -48,13 +71,15 @@ class User(CreateUpdateTracker):
     def get_user_and_created(cls, update: Update, context: CallbackContext) -> Tuple[User, bool]:
         """ python-telegram-bot's Update, Context --> User instance """
         data = extract_user_data_from_update(update)
-        u, created = cls.objects.update_or_create(user_id=data["user_id"], defaults=data)
+        u, created = cls.objects.update_or_create(
+            user_id=data["user_id"], defaults=data)
 
         if created:
             # Save deep_link to User model
             if context is not None and context.args is not None and len(context.args) > 0:
                 payload = context.args[0]
-                if str(payload).strip() != str(data["user_id"]).strip():  # you can't invite yourself
+                # you can't invite yourself
+                if str(payload).strip() != str(data["user_id"]).strip():
                     u.deep_link = payload
                     u.save()
 
@@ -93,36 +118,3 @@ class Location(CreateTracker):
 
     def __str__(self):
         return f"user: {self.user}, created at {self.created_at.strftime('(%H:%M, %d %B %Y)')}"
-
-#
-# class Payment(CreateUpdateTracker):
-#     class PaymentStatus(models.TextChoices):
-#         # A cron job check whether time passed to pay the amount
-#         FAILURE = "FAILURE"
-#         IN_PROGRESS = "IN_PROGRESS"
-#         PAYED = "PAYED"
-#         PAYED_AND_CONFIRMED = "PAYED_AND_CONFIRMED"
-#         SUCCESS = "SUCCESS"
-#
-#     user = models.ForeignKey(User, related_name="payments", on_delete=models.PROTECT)
-#     amount = models.PositiveBigIntegerField(help_text="amount in usdt")
-#     status = models.CharField(max_length=64, choices=PaymentStatus.choices, default=PaymentStatus.IN_PROGRESS)
-#     to_address = models.TextField(null=False)
-#     trx_hash = models.TextField()
-#
-#     @property
-#     def expired_after(self):
-#         expired = 10 - (datetime.datetime.now(tz=datetime.timezone.utc) - self.created_at).total_seconds() / 60
-#
-#         return expired if expired > 0 else 0
-
-#
-# class VPN(CreateTracker):
-#     link = models.TextField(null=False, blank=False)
-#     user = models.ForeignKey(User, related_name="vpn_links", on_delete=models.PROTECT)
-#     active_days = models.PositiveBigIntegerField(default=90)
-#     payment = models.ForeignKey(Payment, related_name="vpn_links", null=False, on_delete=models.PROTECT)
-#
-#     @property
-#     def left_days(self):
-#         return self.active_days - (datetime.date.today() - self.created_at.date()).days
