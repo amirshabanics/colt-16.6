@@ -45,8 +45,7 @@ INSTALLED_APPS = [
 
     # local apps
     'users.apps.UsersConfig',
-    "payment",
-    "vpn"
+    'colt',
 ]
 
 MIDDLEWARE = [

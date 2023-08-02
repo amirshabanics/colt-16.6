@@ -13,5 +13,6 @@ def checking_all(func) -> None:
         user = User.get_user(update, context)
 
         func(update, context, user, group)
+        # func(update, context)
 
     return wrapper

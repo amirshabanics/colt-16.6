@@ -51,7 +51,7 @@ services:
       dockerfile: LocalDockerfile
     container_name: colt_celery
     restart: always
-    command: celery -A colt worker --loglevel=INFO
+    command: celery -A dtb worker --loglevel=INFO
     volumes:
       - .:/code
     env_file:
@@ -65,7 +65,7 @@ services:
       dockerfile: LocalDockerfile
     container_name: colt_beat
     restart: always
-    command: celery -A colt beat -l info --scheduler django_celery_beat.schedulers.DatabaseScheduler
+    command: celery -A dtb beat -l info --scheduler django_celery_beat.schedulers.DatabaseScheduler
     volumes:
       - .:/code
     env_file:
