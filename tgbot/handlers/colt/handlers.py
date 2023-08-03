@@ -16,6 +16,20 @@ def command_play(update: Update, context: CallbackContext, user: User, group: Gr
     game.save()
 
 
+@checking_all(has_game=True, only_admin=True, update_players=True, game_status=[Game.GameStatus.Playing])
+def command_skip(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
+    game: Game = kwargs.get("game")
+    section = game.current_section
+    section.skip_player()
+
+
+@checking_all(has_game=True, only_admin=True, update_players=True, game_status=[Game.GameStatus.Playing])
+def command_next(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
+    game: Game = kwargs.get("game")
+    section = game.current_section
+    section.play_turn(update, context)
+
+
 @checking_all(has_game=True, game_status=[Game.GameStatus.Started], update_players=True, only_admin=True)
 def command_start(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
     game: Game = kwargs.get("game")

@@ -26,6 +26,8 @@ def setup_dispatcher(dp):
 
     # dp.add_handler(CommandHandler("start", wrapper(colt_handlers.command_start)))
     dp.add_handler(CommandHandler("play", colt_handlers.command_play))
+    dp.add_handler(CommandHandler("skip", colt_handlers.command_skip))
+    dp.add_handler(CommandHandler("next", colt_handlers.command_next))
     dp.add_handler(CommandHandler("start", colt_handlers.command_start))
     dp.add_handler(CommandHandler("stat", colt_handlers.command_stat))
     dp.add_handler(CommandHandler("bang", colt_handlers.command_shoot))

@@ -16,6 +16,9 @@ class PlayerOrder(models.Model):
     class Meta:
         unique_together = ('player', 'order',)
 
+    def __str__(self):
+        return f"{self.order}: {self.player.tg_str}"
+
 
 class Game(CreateUpdateTracker):
     class GameStatus(models.TextChoices):
@@ -71,6 +74,11 @@ class Section(CreateUpdateTracker):
         **nb,
     )
 
+    def skip_player(self):
+        self.bullet = (self.bullet + 1) % 6
+        self.current_magazine = (self.current_magazine + 1) % 6
+        self.save()
+
     @classmethod
     def create_section(cls, game: Game, players: list[User], shuffle: bool = True):
         section = Section.objects.create(
@@ -87,6 +95,7 @@ class Section(CreateUpdateTracker):
                 order=i, player=p
             )
             section_order_players.append(player_order)
+        section.players.clear()
         section.players.add(*section_order_players)
 
     @property
@@ -112,8 +121,8 @@ class Section(CreateUpdateTracker):
             # todo remove it
             self.status = self.SectionStatus.Finished
             self.save()
-            new_players = players[:player_index] + \
-                players[player_index + 1:]
+            new_players = players[player_index + 1:] + players[:player_index]
+
             if len(new_players) == 1:
                 game.winner = new_players[0]
                 game.status = game.GameStatus.Finished
@@ -126,11 +135,12 @@ class Section(CreateUpdateTracker):
             Section.create_section(
                 game=game,
                 players=new_players,
+                shuffle=False
             )
 
             return
 
-        self.current_magazine = self.current_magazine + 1
+        self.current_magazine = (self.current_magazine + 1) % 6
         self.save()
         update.message.reply_text(
             text="So Luckyyyyy!"
