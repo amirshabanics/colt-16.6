@@ -95,7 +95,11 @@ class Section(CreateUpdateTracker):
         return (player_index, players[player_index])
 
     def play_turn(self, update: Update, context: CallbackContext):
-        players = self.players.all()
+        players: list[User] = map(
+            lambda p: p.player, list(
+                self.players.all().order_by("order")
+            )
+        )
         player_index = self.current_magazine % len(players)
         game = self.game
         if self.current_magazine == self.bullet:
