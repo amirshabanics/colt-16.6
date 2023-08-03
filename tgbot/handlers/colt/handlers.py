@@ -3,12 +3,9 @@ from telegram.ext import CallbackContext
 from users.models import Group, User
 from .decorators import checking_all
 from colt.models import Game, Section
-import random
-
-# todo only admin user of group
 
 
-@checking_all(has_game=False)
+@checking_all(has_game=False, only_admin=True)
 def command_play(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
     game = Game.objects.create(group=group)
     message = update.message.reply_text(
@@ -19,10 +16,8 @@ def command_play(update: Update, context: CallbackContext, user: User, group: Gr
     game.save()
 
 
-@checking_all(has_game=True, game_status=[Game.GameStatus.Started], update_players=True)
+@checking_all(has_game=True, game_status=[Game.GameStatus.Started], update_players=True, only_admin=True)
 def command_start(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
-    # def command_start(update: Update, context: CallbackContext) -> None:
-
     game: Game = kwargs.get("game")
     if len(game.players.all()) <= 1:
         update.message.reply_text(
@@ -46,18 +41,21 @@ def command_stat(update: Update, context: CallbackContext, user: User, group: Gr
     pass
 
 
-@checking_all(has_game=True)
+@checking_all(has_game=True, only_admin=True)
 def command_cancel(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
-    Game.get_open_games(group).update(status=Game.GameStatus.Cancelled)
-
-    # todo cacel open sections
-    # todo only admin user of group
+    opened_games = Game.get_open_games(group)
+    opened_games.update(status=Game.GameStatus.Cancelled)
+    Section.objects.filter(
+        game__in=list(opened_games),
+        status=Section.SectionStatus.Playing
+    ).update(
+        status=Section.SectionStatus.Cancelled
+    )
     update.message.reply_text(
         text="Cancelled successfully!"
     )
 
 
-# todo only simple user
 @checking_all(has_game=True, game_status=[Game.GameStatus.Started], update_players=True)
 def command_leave(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
 
@@ -74,7 +72,6 @@ def command_leave(update: Update, context: CallbackContext, user: User, group: G
     )
 
 
-# todo only simple user
 @checking_all(has_game=True, game_status=[Game.GameStatus.Started], update_players=True)
 def command_join(update: Update, context: CallbackContext, user: User, group: Group, **kwargs) -> None:
     game = kwargs.get("game")
