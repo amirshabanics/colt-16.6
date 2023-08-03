@@ -3,13 +3,24 @@ from telegram.ext import CallbackContext
 from users.models import Group, User
 from .decorators import checking_all
 from colt.models import Game, Section
+from .statics import (
+    PLAY_NEW_GAME,
+    SKIP_TURN,
+    NOT_ENOUGH_PLAYER,
+    START_GAME,
+    CANCEL_GAME,
+    LEAVE_NOT_IN_GAME,
+    LEAVE_GAME,
+    JOINED_BEFORE,
+    JOINED_SUCCESSFULLY,
+)
 
 
 @checking_all(has_game=False, only_admin=True)
 def command_play(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
     game = Game.objects.create(group=group)
     message = update.message.reply_text(
-        text="Create New Game. insert /join to join the game. shot shot!"
+        text=PLAY_NEW_GAME,
     )
 
     game.message_id = message.message_id
@@ -21,6 +32,9 @@ def command_skip(update: Update, context: CallbackContext, user: User, group: Gr
     game: Game = kwargs.get("game")
     section = game.current_section
     section.skip_player()
+    update.message.reply_text(
+        text=SKIP_TURN,
+    )
 
 
 @checking_all(has_game=True, only_admin=True, update_players=True, game_status=[Game.GameStatus.Playing])
@@ -35,13 +49,13 @@ def command_start(update: Update, context: CallbackContext, user: User, group: G
     game: Game = kwargs.get("game")
     if len(game.players.all()) <= 1:
         update.message.reply_text(
-            text="Players are not enough.!"
+            text=NOT_ENOUGH_PLAYER,
         )
         return
     game.status = Game.GameStatus.Playing
     game.save()
     message = update.message.reply_text(
-        text="Game started.!"
+        text=START_GAME,
     )
 
     game.message_id = message.message_id
@@ -66,7 +80,7 @@ def command_cancel(update: Update, context: CallbackContext, user: User, group: 
         status=Section.SectionStatus.Cancelled
     )
     update.message.reply_text(
-        text="Cancelled successfully!"
+        text=CANCEL_GAME,
     )
 
 
@@ -76,13 +90,13 @@ def command_leave(update: Update, context: CallbackContext, user: User, group: G
     game: Game = kwargs.get("game")
     if not game.players.filter(user_id=user.user_id).exists():
         update.message.reply_text(
-            text="You didn't join the game before."
+            text=LEAVE_NOT_IN_GAME,
         )
         return
 
     game.players.remove(user)
     update.message.reply_text(
-        text="You have leaved the game successfully!"
+        text=LEAVE_GAME,
     )
 
 
@@ -92,13 +106,13 @@ def command_join(update: Update, context: CallbackContext, user: User, group: Gr
 
     if game.players.filter(user_id=user.user_id).exists():
         update.message.reply_text(
-            text="You joined the game before."
+            text=JOINED_BEFORE,
         )
         return
 
     game.players.add(user)
     update.message.reply_text(
-        text="You have joined the game successfully!"
+        text=JOINED_SUCCESSFULLY,
     )
 
 

@@ -104,9 +104,10 @@ class User(CreateUpdateTracker):
 
     @property
     def tg_str(self) -> str:
-        if self.username:
-            return f'@{self.username}'
-        return f"{self.first_name} {self.last_name}" if self.last_name else f"{self.first_name}"
+        return f"[{self.first_name}](tg://user?id={self.user_id})"
+        # if self.username:
+        #     return f'@{self.username}'
+        # return f"{self.first_name} {self.last_name}" if self.last_name else f"{self.first_name}"
 
 
 class Location(CreateTracker):

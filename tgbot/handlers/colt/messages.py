@@ -10,7 +10,9 @@ def player_list_message(game: Game) -> str:
 
     res = "Players List:\n"
     for i, p in enumerate(players):
-        res += f'  {i+1}. {p.tg_str} : {"Dead" if (p not in current_players) or (game.winner is not None and game.winner != p)  else "Lived"}\n'
+        is_dead = (p not in current_players) or (
+            game.winner is not None and game.winner != p)
+        res += f"""  {i+1}. {p.tg_str} : {"Dead" if is_dead  else "Lived"}\n"""
 
     if game.winner is not None:
         res += f"\nWinner:\n  {game.winner.tg_str}"

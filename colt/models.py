@@ -6,6 +6,12 @@ from users.models import User, Group
 import random
 from telegram import Update
 from telegram.ext import CallbackContext
+from tgbot.handlers.colt.statics import (
+    NOT_BE_KILLED,
+    BE_KILLED,
+    END_GAME,
+)
+from .utils import random_item
 # Create your models here.
 
 
@@ -116,9 +122,8 @@ class Section(CreateUpdateTracker):
         game = self.game
         if self.current_magazine == self.bullet:
             update.message.reply_text(
-                text="Bang. you have been killed. so bad."
+                text=random_item(BE_KILLED)
             )
-            # todo remove it
             self.status = self.SectionStatus.Finished
             self.save()
             new_players = players[player_index + 1:] + players[:player_index]
@@ -128,7 +133,7 @@ class Section(CreateUpdateTracker):
                 game.status = game.GameStatus.Finished
                 game.save()
                 update.message.reply_text(
-                    text="End of the Game."
+                    text=random_item(END_GAME)
                 )
                 return
 
@@ -143,5 +148,5 @@ class Section(CreateUpdateTracker):
         self.current_magazine = (self.current_magazine + 1) % 6
         self.save()
         update.message.reply_text(
-            text="So Luckyyyyy!"
+            text=random_item(NOT_BE_KILLED)
         )
