@@ -58,7 +58,6 @@ def checking_all(
 
             func(update, context, user, group, game=game)
 
-            game = Game.get_open_games(group).first()
             if game is not None and update_players == True:
                 update.message.reply_text(
                     text=player_list_message(
