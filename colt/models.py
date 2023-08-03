@@ -89,18 +89,21 @@ class Section(CreateUpdateTracker):
             section_order_players.append(player_order)
         section.players.add(*section_order_players)
 
+    @property
+    def all_players(self) -> list[User]:
+        players = self.players.all().order_by("order")
+        return list(map(lambda p: p.player, list(players)))
+
+    @property
     def player_turn(self) -> tuple[int, User]:
-        players = self.players.all()
+        players = self.all_players
         player_index = self.current_magazine % len(players)
-        return (player_index, players[player_index])
+        player = players[player_index]
+        return (player_index, player)
 
     def play_turn(self, update: Update, context: CallbackContext):
-        players: list[User] = map(
-            lambda p: p.player, list(
-                self.players.all().order_by("order")
-            )
-        )
-        player_index = self.current_magazine % len(players)
+        players: list[User] = self.all_players
+        player_index, _ = self.player_turn
         game = self.game
         if self.current_magazine == self.bullet:
             update.message.reply_text(

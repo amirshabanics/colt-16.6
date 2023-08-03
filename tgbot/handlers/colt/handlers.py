@@ -92,7 +92,7 @@ def command_join(update: Update, context: CallbackContext, user: User, group: Gr
 def command_shoot(update: Update, context: CallbackContext, user: User, group: Group, **kwargs) -> None:
     game: Game = kwargs.get("game")
     section = game.current_section
-    _, current_player = section.player_turn()
+    _, current_player = section.player_turn
     if current_player != user:
         update.message.reply_text(
             text="It's not your turn."
