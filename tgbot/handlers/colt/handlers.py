@@ -2,53 +2,54 @@ from telegram import ParseMode, Update
 from telegram.ext import CallbackContext
 from users.models import Group, User
 from .decorators import checking_all
-from colt.models import Game
-from .messages import player_list_message
+from colt.models import Game, Section
+import random
+
+# todo only admin user of group
 
 
-@checking_all
-def command_play(update: Update, context: CallbackContext, user: User, group: Group) -> None:
-    # def command_start(update: Update, context: CallbackContext) -> None:
-    # todo only admin user of group
-    if Game.get_open_games(group).exists():
-        update.message.reply_text(
-            text="You have created a game before. Please if you want to play another game cancel your last game first."
-        )
-        return
+@checking_all(has_game=False)
+def command_play(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
     game = Game.objects.create(group=group)
     message = update.message.reply_text(
-        text="Game started. insert /join to join the game. shot shot!"
+        text="Create New Game. insert /join to join the game. shot shot!"
     )
 
     game.message_id = message.message_id
     game.save()
 
 
-@checking_all
-def command_start(update: Update, context: CallbackContext, user: User, group: Group) -> None:
+@checking_all(has_game=True, game_status=[Game.GameStatus.Started], update_players=True)
+def command_start(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
     # def command_start(update: Update, context: CallbackContext) -> None:
-    # todo only admin user of group
-    opened_games = Game.get_open_games(group)
-    if not opened_games.exists():
+
+    game: Game = kwargs.get("game")
+    if len(game.players.all()) <= 1:
         update.message.reply_text(
-            text="Not found any game."
+            text="Players are not enough.!"
         )
         return
-    game: Game = opened_games.first()
     game.status = Game.GameStatus.Playing
     game.save()
     message = update.message.reply_text(
-        text="Game started. insert /join to join the game. shot shot!"
+        text="Game started.!"
     )
 
     game.message_id = message.message_id
     game.save()
 
+    Section.create_section(game=game, players=list(game.players.all()))
 
-@checking_all
-def command_cancel(update: Update, context: CallbackContext, user: User, group: Group) -> None:
-    # def command_start(update: Update, context: CallbackContext) -> None:
+
+@checking_all(has_game=True, game_status=[Game.GameStatus.Started, Game.GameStatus.Playing], update_players=True)
+def command_stat(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
+    pass
+
+
+@checking_all(has_game=True)
+def command_cancel(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
     Game.get_open_games(group).update(status=Game.GameStatus.Cancelled)
+
     # todo cacel open sections
     # todo only admin user of group
     update.message.reply_text(
@@ -56,23 +57,11 @@ def command_cancel(update: Update, context: CallbackContext, user: User, group: 
     )
 
 
-@checking_all
-def command_leave(update: Update, context: CallbackContext, user: User, group: Group) -> None:
-    # def command_start(update: Update, context: CallbackContext) -> None:
-    opened_games = Game.get_open_games(group)
-    if not opened_games.exists():
-        update.message.reply_text(
-            text="Not found any game."
-        )
-        return
-    # todo only simple user
+# todo only simple user
+@checking_all(has_game=True, game_status=[Game.GameStatus.Started], update_players=True)
+def command_leave(update: Update, context: CallbackContext, user: User, group: Group,  **kwargs) -> None:
 
-    game: Game = opened_games.first()
-    if game.status != Game.GameStatus.Started:
-        update.message.reply_text(
-            text="You can't leave from a started game."
-        )
-        return
+    game: Game = kwargs.get("game")
     if not game.players.filter(user_id=user.user_id).exists():
         update.message.reply_text(
             text="You didn't join the game before."
@@ -83,48 +72,34 @@ def command_leave(update: Update, context: CallbackContext, user: User, group: G
     update.message.reply_text(
         text="You have leaved the game successfully!"
     )
-    context.bot.edit_message_text(chat_id=group.group_id, message_id=game.message_id,
-                                  text=player_list_message(game.players.all()))
-    update.message.reply_text(
-        text=player_list_message(game.players.all())
-    )
 
 
-@checking_all
-def command_join(update: Update, context: CallbackContext, user: User, group: Group) -> None:
-    # def command_start(update: Update, context: CallbackContext) -> None:
-    opened_games = Game.get_open_games(group)
-    if not opened_games.exists():
-        update.message.reply_text(
-            text="Not found any game."
-        )
-        return
-    # todo only simple user
+# todo only simple user
+@checking_all(has_game=True, game_status=[Game.GameStatus.Started], update_players=True)
+def command_join(update: Update, context: CallbackContext, user: User, group: Group, **kwargs) -> None:
+    game = kwargs.get("game")
 
-    game: Game = opened_games.first()
-    if game.status != Game.GameStatus.Started:
-        update.message.reply_text(
-            text="You can't join to a started game."
-        )
-        return
     if game.players.filter(user_id=user.user_id).exists():
         update.message.reply_text(
             text="You joined the game before."
         )
         return
 
-    # # todo dynamic it
-    # if len(game.players.all()) >= 6:
-    #     update.message.reply_text(
-    #         text="Fully player!"
-    #     )
-    #     return
     game.players.add(user)
     update.message.reply_text(
         text="You have joined the game successfully!"
     )
-    context.bot.edit_message_text(chat_id=group.group_id, message_id=game.message_id,
-                                  text=player_list_message(game.players.all()))
-    update.message.reply_text(
-        text=player_list_message(game.players.all())
-    )
+
+
+@checking_all(has_game=True, game_status=[Game.GameStatus.Playing], update_players=True)
+def command_shoot(update: Update, context: CallbackContext, user: User, group: Group, **kwargs) -> None:
+    game: Game = kwargs.get("game")
+    section = game.current_section
+    _, current_player = section.player_turn()
+    if current_player != user:
+        update.message.reply_text(
+            text="It's not your turn."
+        )
+        return
+
+    section.play_turn(update, context)
