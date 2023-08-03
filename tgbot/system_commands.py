@@ -1,13 +1,18 @@
 from typing import Dict
 from telegram import Bot, BotCommand
 
-
-def set_up_commands(bot_instance: Bot) -> None:
-    commands = {
-        'buy': "خرید vps اختصاصی",
-        "links": "لینک‌های فعال من",
-        "education": "آموزش"
+commands = {
+        'join': "وارد بازی شدن",
+        "leave": "خارج شدن از بازی",
+        "start": "استارت بازی",
+        "play": "شروع یک بازی",
+        "bang": "شلیک گلوله",
+        "cancel": "کنسل کردن بازی",
+        "next": "یک مرحله اجرا شود",
+        "skip": "از بازیکن بگذریم",
+        "stat": "آمار بازی",
     }
+def set_up_commands(bot_instance: Bot) -> None:
     langs_with_commands: Dict[str, Dict[str, str]] = {
         # 'en': {
         #     'start': 'Start django bot 🚀',

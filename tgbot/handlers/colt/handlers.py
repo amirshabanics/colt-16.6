@@ -14,6 +14,7 @@ from .statics import (
     JOINED_BEFORE,
     JOINED_SUCCESSFULLY,
 )
+from tgbot.system_commands import commands
 
 
 @checking_all(has_game=False, only_admin=True)
@@ -128,3 +129,10 @@ def command_shoot(update: Update, context: CallbackContext, user: User, group: G
         return
 
     section.play_turn(update, context)
+
+
+@checking_all()
+def command_help(update: Update, context: CallbackContext, user: User, group: Group, **kwarg):
+    update.message.reply_text(
+        text=str(commands),
+    )

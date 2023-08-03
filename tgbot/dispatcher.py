@@ -34,6 +34,7 @@ def setup_dispatcher(dp):
     dp.add_handler(CommandHandler("join", colt_handlers.command_join))
     dp.add_handler(CommandHandler("leave", colt_handlers.command_leave))
     dp.add_handler(CommandHandler("cancel", colt_handlers.command_cancel))
+    # dp.add_handler(CommandHandler("help", colt_handlers.command_help))
     # dp.add_handler(MessageHandler(Filters.all, colt_handlers.command_start))
 
     return dp

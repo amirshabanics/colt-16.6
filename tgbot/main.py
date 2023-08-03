@@ -17,4 +17,4 @@ except telegram.error.Unauthorized:
     logging.error("Invalid TELEGRAM_TOKEN.")
     sys.exit(1)
 # todo for create command
-# set_up_commands(bot)
+set_up_commands(bot)
